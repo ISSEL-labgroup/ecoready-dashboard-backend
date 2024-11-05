@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import { CollectionDataManagement } from "../utils/index.js";
 
 dotenv.config();
+console.log("key", process.env.ACCESS_KEY);
+console.log("url", process.env.DATABASE_URL);
 
 const router = express.Router({ mergeParams: true });
 
@@ -15,7 +17,6 @@ router.get("/getdata", async (req, res) => {
 	try {
 		const { organization, project, collection, params } = req.query;
 		const accessKey = accessKeys[organization];
-		// console.log('Params in endpoint', params)
 		const response = await CollectionDataManagement.getData(organization, project, collection, accessKey, params);
 		return res.json(response);
 	} catch (error) {
@@ -25,10 +26,6 @@ router.get("/getdata", async (req, res) => {
 });
 
 router.get("/getdatastatistics", async (req, res) => {
-	// const organization = 'living_lab_agro';
-	// const project = 'irrigation';
-	// const collection = 'sensors_data';
-	// const accessKey = '******';
 	try {
 		const { organization, project, collection, params } = req.query;
 		const accessKey = accessKeys[organization];
