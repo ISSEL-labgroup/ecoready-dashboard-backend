@@ -1,6 +1,6 @@
-name: ci
-
-on: push
+name: Deploy
+on:
+  workflow_call:
 
 jobs:
   ci:
@@ -29,6 +29,16 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - name: Deploy Code via rsync over SSH (Safe Update)
+        uses: burnett01/rsync-deployments@7.1.0
+        with:
+          path: .
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_path: ~/ecoready-dashboard-backend
+          switches: -ah --exclude='.git/' --exclude='.github/' --no-o --no-g
       - uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -38,8 +48,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ~/ecoready-dashboard-backend
-            git reset --hard origin/main
-            git pull https://${{ secrets.CLONE_TOKEN }}@github.com/AuthEceSoftEng/ecoready-dashboard-backend main
             bash -ci 'npm i --legacy-peer-deps'
             bash -ci 'pm2 restart server'
   deploy-staging:
@@ -47,6 +55,16 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     steps:
+      - name: Deploy Code via rsync over SSH (Safe Update)
+        uses: burnett01/rsync-deployments@7.1.0
+        with:
+          path: .
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_path: ~/ecoready-dashboard-backend
+          switches: -ah --exclude='.git/' --exclude='.github/' --no-o --no-g
       - uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_STAGING_HOST }}
@@ -55,7 +73,5 @@ jobs:
           port: ${{ secrets.SSH_STAGING_PORT }}
           script: |
             cd ~/ecoready-dashboard-backend
-            git reset --hard origin/staging
-            git pull https://${{ secrets.CLONE_TOKEN }}@github.com/AuthEceSoftEng/ecoready-dashboard-backend staging
             bash -ci 'npm i --legacy-peer-deps'
             bash -ci 'pm2 restart server'
