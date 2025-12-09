@@ -1,0 +1,77 @@
+name: Deploy
+on:
+  workflow_call:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      PORT: 3000
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: ⎔ Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "16.14.0"
+          cache: npm
+
+      - name: 📥 Download deps
+        run: npm i --legacy-peer-deps
+
+      - name: 🧪 Run test script
+        run: npm test
+        env:
+          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Code via rsync over SSH (Safe Update)
+        uses: burnett01/rsync-deployments@7.1.0
+        with:
+          path: .
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_path: ~/ecoready-dashboard-backend
+          switches: -ah --exclude='.git/' --exclude='.github/' --no-o --no-g
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/ecoready-dashboard-backend
+            bash -ci 'npm i --legacy-peer-deps'
+            bash -ci 'pm2 restart server'
+  deploy-staging:
+    needs: ci
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Code via rsync over SSH (Safe Update)
+        uses: burnett01/rsync-deployments@7.1.0
+        with:
+          path: .
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_path: ~/ecoready-dashboard-backend
+          switches: -ah --exclude='.git/' --exclude='.github/' --no-o --no-g
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_STAGING_HOST }}
+          username: ${{ secrets.SSH_STAGING_USERNAME }}
+          key: ${{ secrets.SSH_STAGING_KEY }}
+          port: ${{ secrets.SSH_STAGING_PORT }}
+          script: |
+            cd ~/ecoready-dashboard-backend
+            bash -ci 'npm i --legacy-peer-deps'
+            bash -ci 'pm2 restart server'
